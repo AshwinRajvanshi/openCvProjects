@@ -1,12 +1,19 @@
+
+
 import numpy as np
 import cv2
 import pygame
 import math
 import pygame.mixer
 pygame.mixer.init()
-tom1 = pygame.mixer.Sound("SnareDrum.wav")
-tom2 = pygame.mixer.Sound("SnareDrum.wav")
+
+snare = pygame.mixer.Sound("SnareDrum.wav")
+hithat = pygame.mixer.Sound("rimshot.wav")
+tom1 = pygame.mixer.Sound("midtom.wav")
+tom2 = pygame.mixer.Sound("dry.wav")
 pygame.mixer.Sound.play
+
+
 
 kernel_square = np.ones((11,11),np.uint8)
 kernel_ellipse= cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
@@ -85,10 +92,14 @@ cap = cv2.VideoCapture(0)
 
 wasInTom1 = False
 wasInTom2 = False 
+wasInSnare = False
+wasInHitHat = False
 
 #coords
 tom2Coords = (150,50,300,200)
 tom1Coords = (330, 50,480, 200 )
+snareCoords = (450, 250,600, 400)
+hihatCoords = (50, 250,200, 400)
 
 def tom1Hit(center):
     global wasInTom1
@@ -116,6 +127,32 @@ def tom2Hit(center):
         wasInTom2 = False
         return False
 
+def snareHit(center):
+    global wasInSnare 
+    center = center
+    if inDrumZone(center, "snare"):
+        if wasInSnare == False:
+            wasInSnare = True
+            return True
+        else:
+            return False
+    else:
+        wasInSnare = False
+        return False
+        
+def hithatHit(center):
+    global wasInHitHat
+    center = center
+    if inDrumZone(center, "hihat"):
+        if wasInHitHat == False:
+            wasInHitHat = True
+            return True
+        else:
+            return False
+    else:
+        wasInHitHat = False
+        return False
+
 def inDrumZone(center,drum):
     if drum == "tom2":
         if (center[0] > tom2Coords[0] and center[1] > tom2Coords[1] and
@@ -129,15 +166,27 @@ def inDrumZone(center,drum):
             return True
         else:
             return False
-
+    elif drum == "snare":
+        if (center[0] > snareCoords[0] and center[1] > snareCoords[1] and
+             center[0] < snareCoords[2] and center[1] < snareCoords[3]):
+             return True
+        else:
+            return False
+    elif drum == "hihat":
+        if (center[0] > hihatCoords[0] and center[1] > hihatCoords[1] and
+            center [0] < hihatCoords[2] and center[1] < hihatCoords[3]):
+            return True
+        else:
+            return False
 def playSounds(center):
     if tom1Hit(center):
-        tom1H = True
         tom1.play()
-    elif tom2Hit(center):
-        tom2H = True
+    elif tom2Hit(center): 
         tom2.play()
-
+    elif snareHit(center):
+        snare.play()
+    elif hithatHit(center):
+        hithat.play()
 
 while(True):
     #read frame
@@ -156,6 +205,9 @@ while(True):
         cv2.imshow('mask',mask2)
         cv2.rectangle(frame,(150,50),(300,200),(0,255,0))
         cv2.rectangle(frame,(330, 50),(480, 200),(0,255,0))
+        cv2.rectangle(frame,(450, 250),(600, 400),(0,255,0))
+        cv2.rectangle(frame,(50, 250),(200, 400),(0,255,0))
+
         cv2.imshow('frame',frame)
         #get contours from threshed image
         _,contours, hierarchy =  cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)   
